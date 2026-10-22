@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Perfil compartido · getUP!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16?plugins=container-queries"></script>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script>
+  // Los mismos tokens del portal (app/globals.css).
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          crema: '#F7F2E9', sello: '#221E20', magenta: '#E22084', 'magenta-700': '#BE1068', linea: '#ECE3D4',
+          'linea-fuerte': '#D3C6B1', nota: '#F1E8DA', kraft: '#E4D4BA', gris: '#5E5759', 'gris-suave': '#9A9395',
+          humo: '#B9B2B4', carbon: '#424041', rosa: '#FEE4EF', verde: '#E8F3E3', 'verde-700': '#2E6A27',
+          'verde-500': '#6EBA62', azul: '#E7EDF9', amarillo: '#FAF4D2', durazno: '#FDEBDD', gold: '#F2B21B',
+          naranja: '#F39352', limon: '#E3CB1D', agua: '#7AAADE', hoja: '#6CBB60',
+        },
+        fontFamily: {
+          display: ['"Bricolage Grotesque"', 'sans-serif'],
+          sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          num: ['"Barlow Condensed"', 'sans-serif'],
+        },
+      },
+    },
+  };
+</script>
+<style>
+  html, body { margin: 0; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-font-smoothing: antialiased; background: #E9E1D3; color: #221E20; }
+  .font-num { letter-spacing: .02em; }
+  [data-lucide] { width: 1em; height: 1em; stroke-width: 1.8; flex-shrink: 0; }
+  .sin-barra::-webkit-scrollbar { display: none; } .sin-barra { scrollbar-width: none; }
+  .tarjeta-plato img { transition: transform .35s ease; }
+  .tarjeta-plato:hover img { transform: scale(1.04); }
+  button { -webkit-tap-highlight-color: transparent; }
+
+  /* Marco del celular, solo para revisar en la compu */
+  #marco { position: relative; background: #F7F2E9; }
+  .marco-cel { width: 390px; height: 844px; border-radius: 48px; border: 10px solid #221E20; box-shadow: 0 30px 80px rgba(34,30,32,.25); overflow: hidden; }
+  .marco-cel #pantalla { height: 100%; overflow-y: auto; overscroll-behavior: contain; }
+  .marco-web { width: 100%; min-width: 0; min-height: 100vh; }
+
+  /* Hoja (celular) y modal (web) */
+  #hoja-raiz { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
+  .marco-cel #hoja-raiz { position: absolute; }
+  #hoja-fondo { position: absolute; inset: 0; background: rgba(34,30,32,.5); opacity: 0; transition: opacity .22s ease; }
+  #hoja { position: absolute; left: 0; right: 0; bottom: 0; margin: 0 auto; width: 100%; max-width: 560px; max-height: 88%;
+    overflow-y: auto; overscroll-behavior: contain; background: #fff; border-radius: 28px 28px 0 0;
+    transform: translateY(105%); transition: transform .3s cubic-bezier(.2,.8,.2,1), opacity .22s ease; }
+  #hoja-raiz.abierta { pointer-events: auto; }
+  #hoja-raiz.abierta #hoja-fondo { opacity: 1; }
+  #hoja-raiz.abierta #hoja { transform: translateY(0); }
+  #hoja-raiz.modal #hoja { top: 50%; bottom: auto; max-height: 86vh; border-radius: 28px; opacity: 0; transform: translateY(-46%) scale(.97); }
+  #hoja-raiz.modal.abierta #hoja { opacity: 1; transform: translateY(-50%) scale(1); }
+  .agarradera { width: 44px; height: 5px; border-radius: 99px; background: #E4D4BA; margin: 10px auto 0; }
+  #hoja-raiz.modal .agarradera { display: none; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ Barra de la maqueta (no es parte del diseño) ═══════════════ -->
+<div class="flex flex-wrap items-center justify-center gap-2 border-b border-linea-fuerte bg-white px-3 py-2.5">
+  <span class="hidden font-num text-[13px] font-bold uppercase tracking-wide text-gris sm:inline">Maqueta · Compartir mi perfil</span>
+  <div class="flex rounded-full bg-nota p-1" aria-label="Pantalla">
+    <button data-pantalla="publico" class="btn-pantalla h-9 rounded-full px-3 text-[12px] font-bold sm:px-4 sm:text-[13px]">Lo que ven ellos</button>
+    <button data-pantalla="duenio" class="btn-pantalla h-9 rounded-full px-3 text-[12px] font-bold sm:px-4 sm:text-[13px]">Lo que ve el cliente</button>
+  </div>
+  <div id="selector-modo" class="hidden rounded-full bg-nota p-1 md:flex" aria-label="Tamaño">
+    <button data-modo="cel" class="btn-modo flex h-9 items-center gap-1.5 rounded-full px-4 text-[13px] font-bold"><i data-lucide="smartphone"></i>Celular</button>
+    <button data-modo="web" class="btn-modo flex h-9 items-center gap-1.5 rounded-full px-4 text-[13px] font-bold"><i data-lucide="monitor"></i>Web</button>
+  </div>
+</div>
+
+<div id="escenario">
+  <div id="marco">
+    <div id="pantalla" class="@container/pagina"></div>
+    <!-- Hoja / modal del plato y de las mediciones -->
+    <div id="hoja-raiz" aria-hidden="true">
+      <div id="hoja-fondo" data-accion="cerrar"></div>
+      <div id="hoja" class="@container/hoja" role="dialog" aria-modal="true"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════ DATOS DE EJEMPLO ═══════════════════════════════════
+// Persona ficticia. Fotos y macros de platos REALES de producción (getupcomidasana.com/storage).
+const FOTO = (p) => `https://getupcomidasana.com/storage/${p}`;
+const ILU = (n) => `https://portal.getupcomidasana.com/${n}`;
+
+const PERSONA = {
+  nombre: 'María Fernanda', corto: 'María F.', iniciales: 'MF', plan: 'Mediterráneo', comidas: 'Desayuno · Almuerzo · Snack',
+  semanas: 20, entregas: 92, racha: 14, objetivo: 'Bajar grasa', objetivoKg: 66, restricciones: ['Maní'],
+};
+
+const MEDICIONES = [
+  { f: '2026-06-02', peso: 72.3, grasa_pct: 33.1, musculo_pct: 27.9, agua_pct: 47.2, visceral_nivel: 9, imc: 27.2, edad_biologica: 41 },
+  { f: '2026-06-23', peso: 71.6, grasa_pct: 32.6, musculo_pct: 28.1, agua_pct: 47.5, visceral_nivel: 9, imc: 26.9, edad_biologica: 41 },
+  { f: '2026-07-14', peso: 70.9, grasa_pct: 32.0, musculo_pct: 28.4, agua_pct: 47.9, visceral_nivel: 9, imc: 26.7, edad_biologica: 40 },
+  { f: '2026-08-04', peso: 70.4, grasa_pct: 31.4, musculo_pct: 28.6, agua_pct: 48.1, visceral_nivel: 8, imc: 26.5, edad_biologica: 39 },
+  { f: '2026-08-25', peso: 69.8, grasa_pct: 31.0, musculo_pct: 28.9, agua_pct: 48.4, visceral_nivel: 8, imc: 26.2, edad_biologica: 39 },
+  { f: '2026-09-15', peso: 69.5, grasa_pct: 30.6, musculo_pct: 29.1, agua_pct: 48.6, visceral_nivel: 8, imc: 26.1, edad_biologica: 38 },
+  { f: '2026-10-06', peso: 68.9, grasa_pct: 30.1, musculo_pct: 29.4, agua_pct: 48.8, visceral_nivel: 8, imc: 25.9, edad_biologica: 38 },
+  { f: '2026-10-20', peso: 68.4, grasa_pct: 29.8, musculo_pct: 29.6, agua_pct: 49.0, visceral_nivel: 8, imc: 25.7, edad_biologica: 37 },
+];
+
+const METRICAS = [
+  { k: 'peso', et: 'Peso', u: 'kg', d: 1, baja: true },
+  { k: 'grasa_pct', et: 'Grasa', u: '%', d: 1, baja: true },
+  { k: 'musculo_pct', et: 'Músculo', u: '%', d: 1, baja: false },
+  { k: 'agua_pct', et: 'Agua', u: '%', d: 1, baja: false },
+  { k: 'visceral_nivel', et: 'Visceral', u: 'nivel', d: 0, baja: true },
+  { k: 'imc', et: 'IMC', u: '', d: 1, baja: true },
+  { k: 'edad_biologica', et: 'Edad biológica', u: 'años', d: 0, baja: true },
+];
+
+const AGUA = [6, 8, 7, 8, 5, 8, 8, 7, 8, 8, 6, 8, 8, 7]; // vasos de los últimos 14 días, meta 8
+
+const PLATOS = {
+  muesli: { n: 'Muesli de frutos secos, semillas y frutas frescas con yogurt de fresa', foto: 'platos/galeria/37/20261020_142621_bcy7vhi2.webp', p: 12.6, c: 52.7, g: 17.9,
+    piezas: [['Yogurt de fresa', '150 g'], ['Muesli de frutos secos y semillas', '45 g'], ['Frutas frescas', '80 g']] },
+  frutas: { n: 'Ensalada de frutas de estación con huevo salteado', foto: 'platos/galeria/173/20261020_181354_xvhhhpev.webp', p: 3.2, c: 21.9, g: 4.5,
+    piezas: [['Frutas de estación', '180 g'], ['Huevo salteado', '1 und']] },
+  arepas: { n: 'Arepas de pollo saltado y salsa de ajos', foto: 'platos/galeria/194/20261020_180659_jr3n9b3g.webp', p: 18.5, c: 71.2, g: 11.8,
+    piezas: [['Arepas de maíz', '2 und'], ['Pollo saltado', '90 g'], ['Salsa de ajos', '20 g']] },
+  albondigas: { n: 'Mini albóndigas de pavita, arroz integral de zanahoria y verduras', foto: 'platos/galeria/16/20261020_142421_jbgfkv07.webp', p: 24.2, c: 45.0, g: 11.9,
+    piezas: [['Albóndigas de pavita', '130 g'], ['Arroz integral de zanahoria', '120 g'], ['Verduras salteadas', '90 g']] },
+  pimiento: { n: 'Pimiento relleno de carne molida con papita cóctel al romero', foto: 'platos/galeria/56/20261020_181003_35o0vk8u.webp', p: 31.7, c: 70.0, g: 7.7,
+    piezas: [['Pimiento relleno de carne', '220 g'], ['Papita cóctel al romero', '140 g'], ['Vegetales salteados', '80 g']] },
+  pollo: { n: 'Pollo con pallares iqueños y vegetales', foto: 'platos/galeria/97/20261020_180827_2juv2f5z.webp', p: 35.2, c: 23.6, g: 20.1, sin: ['maní'],
+    piezas: [['Pollo en salsa (sin maní)', '150 g'], ['Pallares iqueños', '110 g'], ['Vegetales', '90 g']] },
+  burritos: { n: 'Burritos de frijoles negros, aguacate, cerdo molido y verduras', foto: 'platos/galeria/424/20261020_181503_qryvctsv.webp', p: 28.1, c: 36.4, g: 20.3,
+    piezas: [['Tortilla integral', '2 und'], ['Frijoles negros', '80 g'], ['Cerdo molido', '90 g'], ['Aguacate', '40 g']] },
+  bonito: { n: 'Bonito escabechado con yuca y vegetales salteados', foto: 'platos/galeria/428/20261020_181415_awbrod6l.webp', p: 34.0, c: 85.3, g: 8.4,
+    piezas: [['Bonito escabechado', '150 g'], ['Yuca sancochada', '160 g'], ['Vegetales salteados', '90 g']] },
+  tilapia: { n: 'Tilapia al horno con espinaca y alcachofas cremosas, choclo y verduras', foto: 'platos/galeria/536/20261020_142351_oy0ilkyy.webp', p: 30.5, c: 48.5, g: 20.0,
+    piezas: [['Tilapia al horno', '150 g'], ['Espinaca y alcachofas cremosas', '90 g'], ['Choclo', '80 g']] },
+  bowl: { n: 'Bowl caliente de ají de pollo, arroz integral, pecanas y verduras', foto: 'platos/galeria/308/20261020_142252_mos30pcx.webp', p: 34.9, c: 61.6, g: 26.4,
+    piezas: [['Ají de pollo', '160 g'], ['Arroz integral', '120 g'], ['Huevo, aceitunas y pecanas', '45 g']] },
+  galletas: { n: 'Galletitas de avena tostada y frutos secos', foto: 'platos/galeria/39/20261020_181433_vy6wr2x7.webp', p: 6.7, c: 44.1, g: 6.5,
+    piezas: [['Galletitas de avena', '4 und'], ['Frutos secos', '15 g']] },
+  arroz: { n: 'Arroz con leche de soya', foto: 'platos/galeria/207/20261020_180925_jywxrxym.webp', p: 6.8, c: 63.7, g: 9.3,
+    piezas: [['Arroz con leche de soya', '200 g'], ['Canela', '—']] },
+};
+const kcal = (x) => Math.round(x.p * 4 + x.c * 4 + x.g * 9);
+
+// Entregas de 2 semanas (lun–vie). [fecha, desayuno, almuerzo, snack, estado, hora]
+const SEMANAS = [
+  { titulo: 'Semana del 12 oct', dias: [
+    ['2026-10-12', 'muesli', 'albondigas', 'galletas', 'entregado', '08:10'],
+    ['2026-10-13', 'frutas', 'pollo', 'arroz', 'entregado', '08:25'],
+    ['2026-10-14', 'arepas', 'pimiento', 'galletas', 'entregado', '08:05'],
+    ['2026-10-15', null, null, null, 'suspendido'],
+    ['2026-10-16', 'muesli', 'bonito', 'arroz', 'entregado', '08:40'],
+  ] },
+  { titulo: 'Semana del 19 oct', dias: [
+    ['2026-10-19', 'frutas', 'burritos', 'galletas', 'entregado', '08:15'],
+    ['2026-10-20', 'arepas', 'tilapia', 'arroz', 'entregado', '08:02'],
+    ['2026-10-21', 'muesli', 'bowl', 'galletas', 'entregado', '07:58'],
+    ['2026-10-22', 'frutas', 'pollo', 'arroz', 'programado'],
+    ['2026-10-23', 'arepas', 'albondigas', 'galletas', 'programado'],
+  ] },
+];
+
+// ═══════════════════════════════════ UTILIDADES ═══════════════════════════════════
+const $ = (s, r = document) => r.querySelector(s);
+const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const fecha = (iso) => new Date(iso + 'T12:00:00');
+const fCorta = (iso) => { const d = fecha(iso); return `${d.getDate()} ${MESES[d.getMonth()]}`; };
+const fDia = (iso) => { const d = fecha(iso); const t = `${DIAS[d.getDay()]} ${d.getDate()} ${MESES[d.getMonth()]}`; return t[0].toUpperCase() + t.slice(1); };
+const num = (v, d) => (d > 0 ? v.toFixed(d).replace(/\.0+$/, '') : String(Math.round(v)));
+const fmt = (m, v) => (m.u === 'nivel' ? `Nivel ${num(v, 0)}` : `${num(v, m.d)}${m.u === '%' ? '%' : m.u ? ' ' + m.u : ''}`);
+const icono = (n, c = '') => `<i data-lucide="${n}" class="${c}"></i>`;
+
+const estado = {
+  pantalla: 'publico', modo: 'web', seccion: 'progreso', metrica: 'peso', comida: 'todas', semana: 1,
+  ver: { peso: true, evolucion: true, comidas: true, plan: true }, activo: true, hoja: null,
+};
+const conMarco = () => estado.modo === 'cel' && innerWidth >= 768;
+
+// ═══════════════════════════════════ GRÁFICOS (regla de marca: sin ejes, trazo redondeado) ═══════════════════════════════════
+function curva(puntos, ancho, alto) {
+  const vals = puntos.map((p) => p.v);
+  const min = Math.min(...vals), max = Math.max(...vals), pad = (max - min || 1) * 0.3;
+  const t0 = fecha(puntos[0].f).getTime(), t1 = fecha(puntos[puntos.length - 1].f).getTime();
+  const x = (p) => 14 + ((fecha(p.f).getTime() - t0) / (t1 - t0 || 1)) * (ancho - 28);
+  const y = (v) => 34 + ((max + pad - v) / (max - min + 2 * pad)) * (alto - 52);
+  const P = puntos.map((p) => [x(p), y(p.v)]);
+  let d = `M${P[0][0]} ${P[0][1]}`;
+  for (let i = 0; i < P.length - 1; i++) {
+    const [x0, y0] = P[i], [x1, y1] = P[i + 1], cx = (x1 - x0) / 2.6;
+    d += ` C${x0 + cx} ${y0} ${x1 - cx} ${y1} ${x1} ${y1}`;
+  }
+  return { d, area: `${d} L${P[P.length - 1][0]} ${alto} L${P[0][0]} ${alto} Z`, P };
+}
+
+// Se dibuja DESPUÉS de pintar la sección, con el ancho real de su tarjeta (no se deforma ni en 390 ni en 1440).
+let observador;
+function dibujarGrafico() {
+  const caja = $('#grafico');
+  if (!caja) return;
+  // Se vuelve a dibujar si su tarjeta cambia de ancho (girar el celular, achicar la ventana, fuentes que cargan tarde).
+  if (!caja.dataset.observado && 'ResizeObserver' in window) {
+    caja.dataset.observado = '1';
+    observador?.disconnect();
+    let ancho = 0;
+    observador = new ResizeObserver(([e]) => { const w = Math.round(e.contentRect.width); if (w && w !== ancho) { ancho = w; dibujarGrafico(); } });
+    observador.observe(caja);
+    return;
+  }
+  const m = METRICAS.find((x) => x.k === estado.metrica);
+  const serie = MEDICIONES.map((r) => ({ f: r.f, v: r[m.k] }));
+  const W = Math.max(260, Math.round(caja.clientWidth)), H = W < 480 ? 200 : 230;
+  const { d, area, P } = curva(serie, W, H), ult = serie.length - 1;
+  caja.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" class="block touch-none select-none" id="svg-grafico" role="img" aria-label="Evolución de ${m.et}">
+      <defs><linearGradient id="relleno" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#E22084" stop-opacity=".16"/><stop offset="1" stop-color="#E22084" stop-opacity="0"/></linearGradient></defs>
+      <path d="${area}" fill="url(#relleno)"/>
+      <path d="${d}" fill="none" stroke="#E22084" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <line id="guia" x1="0" x2="0" y1="6" y2="${H - 6}" stroke="#221E20" stroke-width="1.5" stroke-dasharray="3 5" opacity="0"/>
+      ${P.map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="${i === ult ? 7 : 4.5}" fill="${i === ult ? '#E22084' : '#fff'}" stroke="#E22084" stroke-width="2.5" data-i="${i}"/>`).join('')}
+      <text x="${P[0][0]}" y="${P[0][1] - 14}" font-family="Barlow Condensed" font-weight="700" font-size="19" fill="#5E5759">${fmt(m, serie[0].v)}</text>
+      <text x="${P[ult][0]}" y="${Math.max(22, P[ult][1] - 24)}" font-family="Barlow Condensed" font-weight="700" font-size="23" fill="#221E20" text-anchor="end">${fmt(m, serie[ult].v)}</text>
+    </svg>
+    <div id="burbuja" class="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-[12px] bg-sello px-3 py-1.5 text-center text-white opacity-0 transition-opacity">
+      <b class="block font-num text-[18px] leading-5"></b><span class="text-[11px] font-semibold text-humo"></span>
+    </div>`;
+  const svg = $('#svg-grafico'), circulos = [...svg.querySelectorAll('circle[data-i]')], burbuja = $('#burbuja'), guia = $('#guia');
+  const mostrar = (i) => {
+    const c = circulos[i], r = MEDICIONES[i], cx = +c.getAttribute('cx'), cy = +c.getAttribute('cy');
+    guia.setAttribute('x1', cx); guia.setAttribute('x2', cx); guia.setAttribute('opacity', '.35');
+    burbuja.style.left = `${Math.min(Math.max(cx, 44), W - 44)}px`; burbuja.style.top = `${cy - 12}px`;
+    burbuja.querySelector('b').textContent = fmt(m, r[m.k]); burbuja.querySelector('span').textContent = fCorta(r.f);
+    burbuja.style.opacity = 1;
+    circulos.forEach((cc, j) => cc.setAttribute('r', j === i ? 8 : j === ult ? 7 : 4.5));
+  };
+  const cerca = (ev) => {
+    const bb = svg.getBoundingClientRect(), x = (ev.clientX - bb.left) * (W / bb.width);
+    let mejor = 0; circulos.forEach((c, i) => { if (Math.abs(c.getAttribute('cx') - x) < Math.abs(circulos[mejor].getAttribute('cx') - x)) mejor = i; });
+    mostrar(mejor);
+  };
+  svg.addEventListener('pointermove', cerca);
+  svg.addEventListener('pointerdown', cerca);
+  svg.addEventListener('pointerleave', () => { burbuja.style.opacity = 0; guia.setAttribute('opacity', '0'); });
+}
+
+function anillo(x, tam = 132) {
+  const tot = x.p * 4 + x.c * 4 + x.g * 9, r = 48, C = 2 * Math.PI * r;
+  let off = 0;
+  const arcos = [[x.p * 4, '#E22084'], [x.c * 4, '#F39352'], [x.g * 9, '#E3CB1D']].map(([v, col]) => {
+    const l = (v / tot) * C;
+    const s = `<circle r="${r}" cx="60" cy="60" fill="none" stroke="${col}" stroke-width="13" stroke-linecap="round" stroke-dasharray="${Math.max(l - 7, 1)} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90 60 60)"/>`;
+    off += l; return s;
+  }).join('');
+  return `<svg viewBox="0 0 120 120" width="${tam}" height="${tam}" class="shrink-0"><circle r="${r}" cx="60" cy="60" fill="none" stroke="#F1E8DA" stroke-width="13"/>${arcos}
+    <text x="60" y="63" text-anchor="middle" font-family="Barlow Condensed" font-weight="700" font-size="30" fill="#221E20">${kcal(x)}</text>
+    <text x="60" y="81" text-anchor="middle" font-family="Plus Jakarta Sans" font-weight="600" font-size="10" fill="#5E5759">kcal</text></svg>`;
+}
+
+const leyendaMacros = (x, fondo = 'bg-crema') => `
+  <ul class="m-0 grid w-full list-none grid-cols-3 gap-2 p-0">
+    ${[['Proteínas', x.p, '#E22084'], ['Carbos', x.c, '#F39352'], ['Grasas', x.g, '#E3CB1D']].map(([n, v, c]) => `
+    <li class="min-w-0 rounded-[16px] ${fondo} px-3 py-2.5"><span class="flex items-center gap-1.5 truncate text-[12px] font-bold text-gris"><span class="size-2.5 shrink-0 rounded-full" style="background:${c}"></span>${n}</span>
+    <b class="font-num text-[22px] leading-6">${num(v, 0)} g</b></li>`).join('')}
+  </ul>`;
+
+// ═══════════════════════════════════ PANTALLA PÚBLICA ═══════════════════════════════════
+const SECCIONES = [['progreso', 'Progreso', 'trending-down'], ['comidas', 'Comidas', 'utensils'], ['plan', 'Plan', 'calendar-days']];
+const seccionesVisibles = () => SECCIONES.filter(([k]) => (k === 'progreso' ? estado.ver.evolucion : estado.ver[k]));
+const ANCHO = 'mx-auto w-full max-w-[720px] px-4 @2xl/pagina:px-6 @5xl/pagina:max-w-[1180px] @5xl/pagina:px-8';
+
+function cabeceraPublica() {
+  return `
+  <header class="${ANCHO} flex items-center justify-between gap-3 pb-3 pt-4 @5xl/pagina:pt-6">
+    <img src="${ILU('logo-getup.png')}" alt="getUP!" class="h-8 w-auto">
+    <span class="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[12px] font-bold text-gris">${icono('eye', 'text-[14px]')}Solo lectura</span>
+  </header>`;
+}
+
+const dato = (v, e) => `<div class="flex min-w-0 flex-col items-center gap-0.5"><b class="font-num text-[24px] font-bold leading-6 text-white">${v}</b><span class="truncate text-[12px] font-medium text-humo">${e}</span></div>`;
+
+function tarjetaPersona() {
+  const ini = MEDICIONES[0], fin = MEDICIONES[MEDICIONES.length - 1];
+  const bajo = ini.peso - fin.peso, avance = Math.round(((ini.peso - fin.peso) / (ini.peso - PERSONA.objetivoKg)) * 100);
+  return `
+  <section class="overflow-hidden rounded-[28px] bg-sello" aria-label="Perfil">
+    <div class="relative flex h-[150px] items-end justify-center bg-[#7BAADE]">
+      <img src="${ILU('patron-topografico.png')}" alt="" class="absolute inset-0 h-full w-full object-cover opacity-35" onerror="this.remove()">
+      <img src="${ILU('ilustracion-compartir.png')}" alt="" class="relative h-[142px] w-auto">
+      <span class="absolute -bottom-6 left-1/2 flex size-[52px] -translate-x-1/2 items-center justify-center rounded-full border-2 border-sello bg-carbon font-display text-[17px] font-extrabold text-white">${PERSONA.iniciales}</span>
+    </div>
+    <div class="flex flex-col items-center gap-1 px-5 pb-5 pt-8 text-center">
+      <b class="font-display text-[20px] font-extrabold leading-6 text-white">${PERSONA.corto}</b>
+      <span class="text-[13px] font-medium text-humo">Plan ${PERSONA.plan} · ${PERSONA.comidas}</span>
+      <div class="mt-3 grid w-full grid-cols-3 gap-2">
+        ${estado.ver.peso ? dato(`−${num(bajo, 1)} kg`, 'Desde junio') : dato(`−${num(ini.grasa_pct - fin.grasa_pct, 1)}%`, 'Grasa')}
+        ${dato(`${PERSONA.semanas} sem`, 'En el plan')}
+        ${dato(`${PERSONA.entregas}`, 'Entregas')}
+      </div>
+      ${estado.ver.peso ? `
+      <div class="mt-4 w-full text-left">
+        <div class="mb-1.5 flex justify-between text-[12px] font-semibold text-humo"><span>Objetivo: ${PERSONA.objetivo.toLowerCase()}</span><span class="font-num text-[15px] text-white">${avance}%</span></div>
+        <div class="h-2 w-full overflow-hidden rounded-full bg-carbon"><div class="h-full rounded-full bg-magenta" style="width:${avance}%"></div></div>
+      </div>` : ''}
+    </div>
+  </section>`;
+}
+
+function botonesSeccion() {
+  return `
+  <nav class="flex gap-2 @5xl/pagina:flex-col" aria-label="Secciones">
+    ${seccionesVisibles().map(([k, t, ic]) => {
+      const on = estado.seccion === k;
+      return `<button data-seccion="${k}" aria-current="${on}" class="flex h-12 min-w-0 flex-1 items-center justify-center gap-1 rounded-full px-1.5 text-[13.5px] font-bold transition-colors @md/pagina:gap-1.5 @md/pagina:px-2 @md/pagina:text-[14px] @5xl/pagina:h-14 @5xl/pagina:flex-none @5xl/pagina:justify-start @5xl/pagina:gap-2.5 @5xl/pagina:rounded-[18px] @5xl/pagina:px-3 @5xl/pagina:text-[15px] ${on ? 'bg-sello text-white' : 'bg-white text-sello hover:bg-nota'}">
+        <span class="flex size-7 shrink-0 items-center justify-center rounded-full ${on ? 'bg-magenta' : 'bg-crema'} text-[15px] @md/pagina:size-8 @md/pagina:text-[17px]">${icono(ic)}</span><span class="truncate">${t}</span>
+        <span class="ml-auto hidden text-[16px] opacity-60 @5xl/pagina:inline">${icono('chevron-right')}</span></button>`;
+    }).join('')}
+  </nav>`;
+}
+
+function seccionProgreso() {
+  const a = MEDICIONES[MEDICIONES.length - 2], b = MEDICIONES[MEDICIONES.length - 1];
+  const metricas = METRICAS.filter((x) => estado.ver.peso || (x.k !== 'peso' && x.k !== 'imc'));
+  if (!metricas.some((x) => x.k === estado.metrica)) estado.metrica = metricas[0].k;
+  const ultima = b, otros = Math.max(0, 100 - ultima.grasa_pct - ultima.musculo_pct);
+  const enMeta = AGUA.filter((v) => v >= 8).length;
+  return `
+  <div class="flex flex-col gap-4">
+    <div class="flex items-center justify-between gap-3">
+      <h2 class="m-0 font-display text-[22px] font-extrabold leading-tight">Su evolución</h2>
+      <button data-accion="mediciones" class="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-linea-fuerte bg-white px-4 text-[13px] font-bold hover:bg-nota">${icono('table-2', 'text-[15px]')}Mediciones</button>
+    </div>
+
+    <div class="grid grid-cols-2 gap-2.5 @xl/contenido:grid-cols-4">
+      ${metricas.slice(0, 4).map((x) => {
+        const dlt = b[x.k] - a[x.k], igual = Math.abs(dlt) < 0.05, mejora = !igual && (x.baja ? dlt < 0 : dlt > 0);
+        return `<button data-metrica="${x.k}" class="flex min-w-0 flex-col gap-1 rounded-[20px] bg-white p-3.5 text-left transition ${estado.metrica === x.k ? 'ring-2 ring-sello' : 'hover:ring-1 hover:ring-linea-fuerte'}">
+          <span class="text-[13px] font-semibold text-gris">${x.et}</span>
+          <b class="font-num text-[26px] leading-7">${fmt(x, b[x.k])}</b>
+          <span class="inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-bold ${mejora ? 'bg-verde text-verde-700' : 'bg-nota text-gris'}">
+            ${icono(igual ? 'minus' : dlt < 0 ? 'arrow-down' : 'arrow-up', 'text-[12px]')}${igual ? 'Igual' : num(Math.abs(dlt), x.d) + (x.u === '%' ? '%' : x.u === 'kg' ? ' kg' : '')}</span>
+        </button>`;
+      }).join('')}
+    </div>
+
+    <article class="rounded-[24px] bg-white p-4 @xl/contenido:p-5">
+      <div class="-mx-4 mb-2 flex gap-2 overflow-x-auto px-4 sin-barra @xl/contenido:mx-0 @xl/contenido:flex-wrap @xl/contenido:px-0">
+        ${metricas.map((x) => `<button data-metrica="${x.k}" class="h-9 shrink-0 rounded-full px-3.5 text-[13px] font-bold ${estado.metrica === x.k ? 'bg-sello text-white' : 'bg-crema text-sello hover:bg-nota'}">${x.et}</button>`).join('')}
+      </div>
+      <div id="grafico" class="relative w-full"></div>
+      <div class="mt-1 flex justify-between text-[12px] font-semibold text-gris"><span>${fCorta(MEDICIONES[0].f)}</span><span>${fCorta(b.f)}</span></div>
+      <p class="m-0 mt-3 flex items-center gap-1.5 rounded-[14px] bg-crema px-3.5 py-2.5 text-[13px] font-medium text-gris">${icono('pointer', 'text-[14px]')}Toca un punto para ver la fecha y el valor.</p>
+    </article>
+
+    <div class="grid gap-4 @xl/contenido:grid-cols-2">
+      <article class="rounded-[24px] bg-white p-4">
+        <h3 class="m-0 mb-3 text-[15px] font-extrabold">Composición corporal</h3>
+        <div class="flex h-5 w-full gap-[3px] overflow-hidden rounded-full">
+          <span class="h-full rounded-l-full bg-limon" style="width:${ultima.grasa_pct}%"></span>
+          <span class="h-full bg-magenta" style="width:${ultima.musculo_pct}%"></span>
+          <span class="h-full flex-1 rounded-r-full bg-kraft"></span>
+        </div>
+        <ul class="m-0 mt-3 grid list-none grid-cols-3 gap-2 p-0 text-[12px] font-semibold text-gris">
+          <li><span class="mr-1 inline-block size-2.5 rounded-full bg-limon"></span>Grasa<b class="block font-num text-[20px] text-sello">${num(ultima.grasa_pct, 1)}%</b></li>
+          <li><span class="mr-1 inline-block size-2.5 rounded-full bg-magenta"></span>Músculo<b class="block font-num text-[20px] text-sello">${num(ultima.musculo_pct, 1)}%</b></li>
+          <li><span class="mr-1 inline-block size-2.5 rounded-full bg-kraft"></span>Otros<b class="block font-num text-[20px] text-sello">${num(otros, 1)}%</b></li>
+        </ul>
+      </article>
+      <article class="rounded-[24px] bg-white p-4">
+        <div class="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <h3 class="m-0 text-[15px] font-extrabold">Agua · 14 días</h3>
+          <span class="text-[13px] font-semibold text-gris"><b class="font-num text-[18px] text-sello">${enMeta} de 14</b> con la meta</span>
+        </div>
+        <div class="flex h-[92px] items-end gap-1">
+          ${AGUA.map((v) => `<span class="relative h-full flex-1 rounded-full bg-azul"><span class="absolute inset-x-0 bottom-0 rounded-full ${v >= 8 ? 'bg-hoja' : 'bg-agua'}" style="height:${(v / 8) * 100}%"></span></span>`).join('')}
+        </div>
+      </article>
+    </div>
+  </div>`;
+}
+
+function seccionComidas() {
+  const sem = SEMANAS[estado.semana];
+  const filtros = [['todas', 'Todas'], ['desayuno', 'Desayuno'], ['almuerzo', 'Almuerzo'], ['snack', 'Snack']];
+  const idx = { desayuno: 1, almuerzo: 2, snack: 3 };
+  const recibidos = SEMANAS.flatMap((s) => s.dias).filter((d) => d[4] === 'entregado');
+  const prom = { p: 0, c: 0, g: 0 };
+  recibidos.forEach((d) => [d[1], d[2], d[3]].forEach((k) => { prom.p += PLATOS[k].p; prom.c += PLATOS[k].c; prom.g += PLATOS[k].g; }));
+  ['p', 'c', 'g'].forEach((k) => (prom[k] /= recibidos.length));
+  return `
+  <div class="flex flex-col gap-4">
+    <h2 class="m-0 font-display text-[22px] font-extrabold leading-tight">Lo que come</h2>
+
+    <article class="flex flex-col items-center gap-4 rounded-[24px] bg-white p-4 @lg/contenido:flex-row @lg/contenido:items-center">
+      ${anillo(prom)}
+      <div class="flex w-full min-w-0 flex-1 flex-col gap-3">
+        <p class="m-0 text-center text-[15px] font-semibold leading-snug @lg/contenido:text-left">Un día con getUP! le da <b class="font-num text-[19px]">${kcal(prom)} kcal</b> en 3 comidas.</p>
+        ${leyendaMacros(prom)}
+      </div>
+    </article>
+
+    <div class="flex flex-col gap-3 @2xl/contenido:flex-row @2xl/contenido:items-center @2xl/contenido:justify-between">
+      <div class="flex items-center justify-between gap-2 @2xl/contenido:justify-start">
+        <button data-semana="-1" class="flex size-10 shrink-0 items-center justify-center rounded-full bg-white text-[18px] disabled:opacity-30" ${estado.semana === 0 ? 'disabled' : ''} aria-label="Semana anterior">${icono('chevron-left')}</button>
+        <b class="text-center text-[15px] font-extrabold @2xl/contenido:min-w-[150px]">${sem.titulo}</b>
+        <button data-semana="1" class="flex size-10 shrink-0 items-center justify-center rounded-full bg-white text-[18px] disabled:opacity-30" ${estado.semana === SEMANAS.length - 1 ? 'disabled' : ''} aria-label="Semana siguiente">${icono('chevron-right')}</button>
+      </div>
+      <div class="-mx-4 flex gap-2 overflow-x-auto px-4 sin-barra @2xl/contenido:mx-0 @2xl/contenido:px-0">
+        ${filtros.map(([k, t]) => `<button data-comida="${k}" class="h-9 shrink-0 rounded-full px-3.5 text-[13px] font-bold ${estado.comida === k ? 'bg-sello text-white' : 'bg-white text-sello hover:bg-nota'}">${t}</button>`).join('')}
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-5">
+      ${sem.dias.map((d) => {
+        const [f, , , , est, hora] = d;
+        const etiqueta = est === 'entregado' ? `<span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-verde px-2.5 py-1 text-[12px] font-bold text-verde-700">${icono('check', 'text-[13px]')}Recibido ${hora}</span>`
+          : est === 'programado' ? `<span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-amarillo px-2.5 py-1 text-[12px] font-bold text-[#7A5B0C]">${icono('clock-3', 'text-[13px]')}Por llegar</span>`
+          : `<span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-kraft px-2.5 py-1 text-[12px] font-bold text-gris">${icono('pause', 'text-[13px]')}Suspendido</span>`;
+        const comidas = Object.entries(idx).filter(([c]) => estado.comida === 'todas' || estado.comida === c).filter(([, i]) => d[i]);
+        return `
+        <section>
+          <div class="mb-2 flex items-center justify-between gap-2"><b class="text-[15px] font-extrabold">${fDia(f)}</b>${etiqueta}</div>
+          ${comidas.length ? `<div class="grid grid-cols-1 gap-2.5 @lg/contenido:grid-cols-2 @3xl/contenido:grid-cols-3">${comidas.map(([c, i]) => tarjetaPlato(c, d[i], est)).join('')}</div>`
+            : `<p class="m-0 rounded-[18px] border border-dashed border-linea-fuerte px-4 py-3 text-[13px] font-medium text-gris">Ese día no tuvo entrega.</p>`}
+        </section>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+function tarjetaPlato(comida, k, est) {
+  const x = PLATOS[k];
+  return `
+  <button data-plato="${k}" data-tipo="${comida}" data-est="${est}" class="tarjeta-plato flex min-w-0 items-center gap-3 overflow-hidden rounded-[20px] bg-white p-2 pr-3 text-left hover:ring-1 hover:ring-linea-fuerte @lg/contenido:flex-col @lg/contenido:items-stretch @lg/contenido:gap-0 @lg/contenido:p-0">
+    <span class="relative block size-[84px] shrink-0 overflow-hidden rounded-[16px] bg-nota @lg/contenido:aspect-[4/3] @lg/contenido:h-auto @lg/contenido:w-full @lg/contenido:rounded-none">
+      <img src="${FOTO(x.foto)}" alt="" loading="lazy" class="h-full w-full object-cover">
+      <span class="absolute left-1.5 top-1.5 rounded-full bg-white/95 px-2 py-0.5 text-[10px] font-bold capitalize @lg/contenido:left-2.5 @lg/contenido:top-2.5 @lg/contenido:text-[11px]">${comida}</span>
+    </span>
+    <span class="flex min-w-0 flex-1 flex-col gap-1.5 @lg/contenido:p-3.5">
+      <b class="line-clamp-2 text-[14px] font-bold leading-[18px]">${x.n}</b>
+      <span class="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+        <span class="font-num text-[16px] font-bold">${kcal(x)} kcal</span>
+        <span class="text-[12px] font-semibold text-gris">· ${num(x.p, 0)} g prot.</span>
+        ${(x.sin || []).map((s) => `<span class="inline-flex items-center gap-1 rounded-full bg-verde px-2 py-0.5 text-[11px] font-bold text-verde-700">${icono('shield-check', 'text-[12px]')}Sin ${s}</span>`).join('')}
+      </span>
+    </span>
+    <span class="text-[18px] text-gris-suave @lg/contenido:hidden">${icono('chevron-right')}</span>
+  </button>`;
+}
+
+function seccionPlan() {
+  // Octubre 2026 empieza jueves. Mismos colores del calendario del portal (programado amarillo claro, incidencia rojo claro).
+  const est = {};
+  for (let d = 1; d <= 31; d++) {
+    const dow = new Date(2026, 9, d).getDay();
+    if (dow !== 0 && dow !== 6) est[d] = d < 21 ? 'entregado' : 'programado';
+  }
+  est[15] = 'suspendido'; est[21] = 'hoy'; est[9] = 'incidencia';
+  const clase = { entregado: 'bg-verde text-verde-700', programado: 'bg-amarillo text-[#7A5B0C]', suspendido: 'bg-kraft text-gris line-through', hoy: 'bg-sello text-white', incidencia: 'bg-[#FDE8E6] text-[#A3241F]' };
+  const celdas = ['<span></span>', '<span></span>', '<span></span>'];
+  for (let d = 1; d <= 31; d++) celdas.push(`<span class="flex aspect-square items-center justify-center rounded-[10px] font-num text-[16px] font-bold @md/contenido:rounded-[12px] @md/contenido:text-[18px] ${est[d] ? clase[est[d]] : 'text-gris-suave'}">${d}</span>`);
+  return `
+  <div class="flex flex-col gap-4">
+    <h2 class="m-0 font-display text-[22px] font-extrabold leading-tight">Su constancia</h2>
+    <div class="grid grid-cols-3 gap-2.5">
+      ${[['flame', `${PERSONA.racha}`, 'días seguidos'], ['package-check', `${PERSONA.entregas}`, 'entregas'], ['calendar-heart', `${PERSONA.semanas}`, 'semanas']].map(([ic, v, t]) => `
+      <div class="flex min-w-0 flex-col items-center gap-1 rounded-[20px] bg-white px-2 py-3.5 text-center">
+        <span class="flex size-10 items-center justify-center rounded-full bg-rosa text-[19px] text-magenta-700">${icono(ic)}</span>
+        <b class="font-num text-[26px] leading-7">${v}</b><span class="text-[12px] font-semibold text-gris">${t}</span>
+      </div>`).join('')}
+    </div>
+    <article class="rounded-[24px] bg-white p-4 @xl/contenido:p-5">
+      <div class="mb-3 flex items-center justify-between gap-2"><b class="text-[16px] font-extrabold">Octubre 2026</b><span class="truncate text-[12px] font-semibold text-gris">Plan ${PERSONA.plan}</span></div>
+      <div class="mx-auto grid max-w-[560px] grid-cols-7 gap-1.5 text-center text-[12px] font-bold text-gris">${['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d) => `<span class="pb-1">${d}</span>`).join('')}${celdas.join('')}</div>
+      <div class="mt-3 flex flex-wrap gap-x-3.5 gap-y-2 text-[12px] font-semibold text-gris">
+        <span class="inline-flex items-center gap-1.5"><span class="size-2.5 rounded-[3px] bg-verde-500"></span>Recibido</span>
+        <span class="inline-flex items-center gap-1.5"><span class="size-2.5 rounded-[3px] bg-gold"></span>Programado</span>
+        <span class="inline-flex items-center gap-1.5"><span class="size-2.5 rounded-[3px] bg-kraft"></span>Suspendido</span>
+        <span class="inline-flex items-center gap-1.5"><span class="size-2.5 rounded-[3px] bg-[#E8776F]"></span>Incidencia</span>
+      </div>
+    </article>
+    <article class="flex items-center gap-3 rounded-[24px] bg-white p-4">
+      <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-verde text-[20px] text-verde-700">${icono('shield-check')}</span>
+      <div class="min-w-0"><b class="block text-[15px] font-extrabold">Cuidamos sus excepciones</b><span class="text-[13px] font-medium text-gris">Sin ${PERSONA.restricciones.join(', ').toLowerCase()} en cada plato, verificado en cocina.</span></div>
+    </article>
+  </div>`;
+}
+
+function pantallaPublica() {
+  if (!estado.activo) {
+    return `${cabeceraPublica()}
+    <div class="mx-auto flex max-w-[420px] flex-col items-center gap-3 px-6 py-16 text-center">
+      <img src="${ILU('ilustracion-planta.png')}" alt="" class="h-40 w-auto">
+      <h1 class="m-0 font-display text-[24px] font-extrabold">Este link ya no está activo</h1>
+      <p class="m-0 text-[15px] font-medium text-gris">La persona que te lo compartió lo apagó.</p>
+    </div>`;
+  }
+  const visibles = seccionesVisibles().map(([k]) => k);
+  if (!visibles.includes(estado.seccion)) estado.seccion = visibles[0] || 'progreso';
+  const cuerpo = !visibles.length ? '<p class="m-0 rounded-[20px] bg-white p-5 text-[15px] font-medium text-gris">No compartió ninguna sección.</p>'
+    : estado.seccion === 'progreso' ? seccionProgreso() : estado.seccion === 'comidas' ? seccionComidas() : seccionPlan();
+  return `
+  ${cabeceraPublica()}
+  <main class="${ANCHO} flex flex-col gap-4 pb-10 @5xl/pagina:grid @5xl/pagina:grid-cols-[320px_minmax(0,1fr)] @5xl/pagina:items-start @5xl/pagina:gap-8">
+    <aside class="flex min-w-0 flex-col gap-3 @5xl/pagina:sticky @5xl/pagina:top-6">
+      ${tarjetaPersona()}
+      <div id="barra-secciones" class="sticky top-0 z-20 -mx-4 bg-crema/95 px-4 py-2 backdrop-blur @2xl/pagina:-mx-6 @2xl/pagina:px-6 @5xl/pagina:static @5xl/pagina:mx-0 @5xl/pagina:bg-transparent @5xl/pagina:p-0">${botonesSeccion()}</div>
+      <p class="m-0 hidden text-[12px] font-medium leading-snug text-gris @5xl/pagina:block">Datos al ${fCorta(MEDICIONES[MEDICIONES.length - 1].f)}. Lo compartió ${PERSONA.corto} desde su app getUP!.</p>
+    </aside>
+    <section id="seccion" class="@container/contenido min-w-0 scroll-mt-20">${cuerpo}</section>
+  </main>
+  <footer class="border-t border-linea">
+    <div class="${ANCHO} flex flex-col items-center gap-3 py-6 text-center @2xl/pagina:flex-row @2xl/pagina:justify-between @2xl/pagina:text-left">
+      <span class="text-[13px] font-medium text-gris">Comida saludable a tu puerta, todos los días.</span>
+      <a href="https://getupcomidasana.com" target="_blank" rel="noopener" class="inline-flex h-11 items-center gap-2 rounded-full bg-sello px-5 text-[14px] font-bold text-white">${icono('sparkles', 'text-[16px]')}Conoce getUP!</a>
+    </div>
+  </footer>`;
+}
+
+// ═══════════════════════════════════ PANTALLA DEL CLIENTE (parte de la real /salud/compartir) ═══════════════════════════════════
+const toggle = (k, on) => `<button data-toggle="${k}" role="switch" aria-checked="${on}" aria-label="${k}" class="relative h-[30px] w-[50px] shrink-0 rounded-full transition-colors ${on ? 'bg-sello' : 'bg-kraft'}">
+  <span class="absolute top-[3px] size-6 rounded-full bg-white shadow transition-all ${on ? 'left-[23px]' : 'left-[3px]'}"></span></button>`;
+const filaToggle = (k, titulo, sub, ic, on, ultima) => `
+  <div class="flex items-center justify-between gap-3 py-3.5 ${ultima ? '' : 'border-b border-linea'}">
+    <span class="flex min-w-0 items-center gap-3"><span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-crema text-[17px]">${icono(ic)}</span>
+    <span class="flex min-w-0 flex-col"><span class="text-[15px] font-bold">${titulo}</span><span class="text-[13px] font-medium text-gris">${sub}</span></span></span>
+    ${toggle(k, on)}
+  </div>`;
+
+function pantallaDuenio() {
+  const v = estado.ver;
+  return `
+  <div class="mx-auto flex w-full max-w-[560px] flex-col gap-4 px-4 pb-10 pt-4">
+    <div class="flex items-center gap-3">
+      <button class="flex size-11 shrink-0 items-center justify-center rounded-[14px] border border-linea bg-white text-[20px]" aria-label="Volver">${icono('chevron-left')}</button>
+      <h1 class="m-0 font-display text-[26px] font-extrabold leading-[1.1]">Compartir mi perfil</h1>
+    </div>
+
+    ${tarjetaPersona()}
+
+    <section class="flex flex-col gap-2.5">
+      <h2 class="m-0 font-display text-[20px] font-extrabold leading-[1.2]">Tu link</h2>
+      <div class="flex items-center gap-2">
+        <span class="flex h-12 min-w-0 flex-1 items-center gap-2 rounded-full border border-linea-fuerte bg-white px-4 text-[15px] font-medium">
+          ${icono('link', 'text-[18px] text-gris')}<span class="truncate">${estado.activo ? 'portal.getupcomidasana.com/compartido/k7Q2xm' : 'Tu link está apagado'}</span></span>
+        <button data-accion="copiar" ${estado.activo ? '' : 'disabled'} class="inline-flex h-12 shrink-0 items-center gap-2 rounded-full bg-sello px-5 text-[15px] font-bold text-white disabled:opacity-40">${icono('copy', 'text-[16px]')}<span>Copiar</span></button>
+      </div>
+      <p class="m-0 text-[14px] font-medium text-gris">${estado.activo ? 'Lo abrieron 5 veces.' : 'Apagado, nadie puede abrirlo.'}</p>
+    </section>
+
+    <section class="flex flex-col gap-2.5">
+      <h2 class="m-0 font-display text-[20px] font-extrabold leading-[1.2]">Qué ven</h2>
+      <div class="rounded-[20px] bg-white px-4 py-1">
+        ${filaToggle('evolucion', 'Mi evolución', 'Mediciones y gráficos', 'trending-down', v.evolucion)}
+        ${filaToggle('peso', 'Mi peso', 'Kilos e IMC', 'scale', v.peso)}
+        ${filaToggle('comidas', 'Mis comidas', 'Lo que recibí y lo que viene', 'utensils', v.comidas)}
+        ${filaToggle('plan', 'Mi plan', 'Calendario y constancia', 'calendar-days', v.plan, true)}
+      </div>
+    </section>
+
+    <div class="rounded-[20px] bg-white px-4 py-1">${filaToggle('activo', 'Link activo', 'Apagado, nadie puede abrirlo', 'power', estado.activo, true)}</div>
+
+    <div class="grid grid-cols-1 gap-2.5 min-[400px]:grid-cols-2">
+      <button data-accion="ver-como" class="inline-flex h-14 items-center justify-center gap-2 rounded-full border border-linea-fuerte bg-white text-[15px] font-bold hover:bg-nota">${icono('eye', 'text-[18px]')}Ver cómo lo ven</button>
+      <button class="inline-flex h-14 items-center justify-center gap-2 rounded-full bg-sello text-[15px] font-bold text-white">${icono('share-2', 'text-[18px]')}Compartir</button>
+    </div>
+    <div class="flex items-center justify-center gap-4 pt-1 text-[22px] text-gris">
+      ${[['message-circle', 'WhatsApp'], ['mail', 'Correo'], ['qr-code', 'Código QR']].map(([ic, t]) => `<button class="flex size-12 items-center justify-center rounded-full bg-white hover:bg-nota" aria-label="${t}" title="${t}">${icono(ic)}</button>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════ HOJAS (plato y mediciones) ═══════════════════════════════════
+const botonCerrar = (clases) => `<button type="button" data-accion="cerrar" class="${clases} flex size-10 items-center justify-center rounded-full text-[18px]" aria-label="Cerrar">${icono('x')}</button>`;
+
+function hojaPlato(k, tipo, est) {
+  const x = PLATOS[k];
+  return `
+  <div class="relative">
+    <img src="${FOTO(x.foto)}" alt="" class="aspect-[4/3] w-full object-cover">
+    ${botonCerrar('absolute right-3 top-3 bg-white shadow')}
+    <span class="absolute bottom-3 left-3 rounded-full bg-white px-3 py-1 text-[12px] font-bold capitalize">${tipo}</span>
+  </div>
+  <div class="flex flex-col gap-4 p-5">
+    <div class="flex flex-col gap-2">
+      ${est === 'entregado' ? `<span class="inline-flex w-fit items-center gap-1 rounded-full bg-verde px-2.5 py-1 text-[12px] font-bold text-verde-700">${icono('check', 'text-[13px]')}Recibido</span>`
+        : `<span class="inline-flex w-fit items-center gap-1 rounded-full bg-amarillo px-2.5 py-1 text-[12px] font-bold text-[#7A5B0C]">${icono('clock-3', 'text-[13px]')}Por llegar</span>`}
+      <h3 class="m-0 font-display text-[21px] font-extrabold leading-tight">${x.n}</h3>
+      ${x.sin ? `<span class="inline-flex w-fit items-center gap-1.5 rounded-full bg-verde px-3 py-1.5 text-[13px] font-bold text-verde-700">${icono('shield-check', 'text-[15px]')}Sin ${x.sin.join(', ')} · verificado</span>` : ''}
+    </div>
+    <div class="flex flex-col items-center gap-3 rounded-[20px] bg-crema p-3 @md/hoja:flex-row">${anillo(x, 112)}${leyendaMacros(x, 'bg-white')}</div>
+    <div>
+      <h4 class="m-0 mb-2 text-[15px] font-extrabold">Qué lleva</h4>
+      <ul class="m-0 list-none divide-y divide-linea rounded-[18px] border border-linea p-0">
+        ${x.piezas.map(([n, g]) => `<li class="flex items-center justify-between gap-3 px-4 py-3 text-[14px]"><span class="min-w-0 font-semibold">${n}</span><b class="shrink-0 font-num text-[17px]">${g}</b></li>`).join('')}
+      </ul>
+    </div>
+  </div>`;
+}
+
+function hojaMediciones() {
+  const cols = METRICAS.filter((x) => estado.ver.peso || (x.k !== 'peso' && x.k !== 'imc'));
+  return `
+  <div class="agarradera"></div>
+  <div class="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-linea bg-white px-5 py-4">
+    <h3 class="m-0 font-display text-[21px] font-extrabold">Sus mediciones</h3>
+    ${botonCerrar('bg-crema')}
+  </div>
+  <div class="overflow-x-auto p-3">
+    <table class="w-full border-collapse text-left text-[13px]">
+      <thead><tr class="bg-crema font-num text-[13px] uppercase tracking-wide text-gris"><th class="sticky left-0 bg-crema px-3 py-2.5">Fecha</th>${cols.map((c) => `<th class="whitespace-nowrap px-3 py-2.5">${c.et}</th>`).join('')}</tr></thead>
+      <tbody>${[...MEDICIONES].reverse().map((r) => `<tr class="border-b border-linea"><td class="sticky left-0 whitespace-nowrap bg-white px-3 py-2.5 font-semibold">${fCorta(r.f)}</td>${cols.map((c) => `<td class="whitespace-nowrap px-3 py-2.5 font-num text-[16px] font-bold">${fmt(c, r[c.k])}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+function abrirHoja(html) {
+  const raiz = $('#hoja-raiz');
+  $('#hoja').innerHTML = html;
+  $('#hoja').scrollTop = 0;
+  raiz.classList.toggle('modal', estado.modo === 'web' && innerWidth >= 768);
+  raiz.setAttribute('aria-hidden', 'false');
+  lucide.createIcons();
+  void raiz.offsetWidth; // fija el estado cerrado para que la entrada se anime
+  raiz.classList.add('abierta');
+  bloquearScroll(true);
+  estado.hoja = true;
+}
+function cerrarHoja() {
+  if (!estado.hoja) return;
+  const raiz = $('#hoja-raiz');
+  raiz.classList.remove('abierta');
+  raiz.setAttribute('aria-hidden', 'true');
+  bloquearScroll(false);
+  estado.hoja = null;
+}
+function bloquearScroll(si) {
+  document.body.style.overflow = si && !conMarco() ? 'hidden' : '';
+  $('#pantalla').style.overflowY = si && conMarco() ? 'hidden' : '';
+}
+
+// ═══════════════════════════════════ RENDER + EVENTOS ═══════════════════════════════════
+function render() {
+  const marco = conMarco();
+  $('#marco').className = marco ? 'marco-cel' : 'marco-web';
+  $('#escenario').className = marco ? 'flex justify-center py-8' : '';
+  const scroll = marco ? $('#pantalla').scrollTop : 0;
+  $('#pantalla').innerHTML = estado.pantalla === 'publico' ? pantallaPublica() : pantallaDuenio();
+  if (marco) $('#pantalla').scrollTop = scroll;
+  document.querySelectorAll('.btn-pantalla').forEach((b) => { const on = b.dataset.pantalla === estado.pantalla; b.classList.toggle('bg-sello', on); b.classList.toggle('text-white', on); });
+  document.querySelectorAll('.btn-modo').forEach((b) => { const on = b.dataset.modo === estado.modo; b.classList.toggle('bg-sello', on); b.classList.toggle('text-white', on); });
+  lucide.createIcons();
+  dibujarGrafico();
+}
+
+function irASeccion() {
+  const sec = $('#seccion'), barra = $('#barra-secciones');
+  if (!sec || !barra) return;
+  const fija = getComputedStyle(barra).position === 'sticky';
+  if (!fija) return; // en web ancho las secciones están al lado: no hace falta mover
+  const cont = conMarco() ? $('#pantalla') : null;
+  const y = sec.getBoundingClientRect().top - (cont ? cont.getBoundingClientRect().top : 0) + (cont ? cont.scrollTop : scrollY) - barra.offsetHeight - 8;
+  const actual = cont ? cont.scrollTop : scrollY;
+  if (actual > y) (cont || window).scrollTo({ top: y, behavior: 'smooth' });
+}
+
+document.addEventListener('click', (ev) => {
+  const b = ev.target.closest('[data-accion], button');
+  if (!b) return;
+  const d = b.dataset;
+  if (d.accion === 'cerrar') { cerrarHoja(); return; }
+  if (d.accion === 'mediciones') { abrirHoja(hojaMediciones()); return; }
+  if (d.accion === 'copiar') {
+    try { navigator.clipboard?.writeText('https://portal.getupcomidasana.com/compartido/k7Q2xm').catch(() => {}); } catch (e) { /* sin portapapeles */ }
+    const t = b.querySelector('span'); t.textContent = 'Copiado'; setTimeout(() => { t.textContent = 'Copiar'; }, 1600);
+    return;
+  }
+  if (d.accion === 'ver-como') { estado.pantalla = 'publico'; render(); scrollTo(0, 0); return; }
+  if (d.plato) { abrirHoja(hojaPlato(d.plato, d.tipo, d.est)); return; }
+  if (d.pantalla) { estado.pantalla = d.pantalla; render(); scrollTo(0, 0); return; }
+  if (d.modo) { estado.modo = d.modo; render(); return; }
+  if (d.seccion) { estado.seccion = d.seccion; render(); irASeccion(); return; }
+  if (d.metrica) { estado.metrica = d.metrica; render(); return; }
+  if (d.comida) { estado.comida = d.comida; render(); return; }
+  if (d.semana) { estado.semana = Math.max(0, Math.min(SEMANAS.length - 1, estado.semana + Number(d.semana))); render(); return; }
+  if (d.toggle) { if (d.toggle === 'activo') estado.activo = !estado.activo; else estado.ver[d.toggle] = !estado.ver[d.toggle]; render(); }
+});
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') cerrarHoja(); });
+let espera;
+addEventListener('resize', () => { clearTimeout(espera); espera = setTimeout(() => { render(); if (estado.hoja) $('#hoja-raiz').classList.toggle('modal', estado.modo === 'web' && innerWidth >= 768); }, 120); });
+
+// Atajos para revisar: #comidas, #plan, #cliente, #plato-pollo, #mediciones, #cel, #web, #largo
+const atajo = location.hash.slice(1).split(',');
+estado.modo = innerWidth >= 1100 ? 'web' : 'cel';
+atajo.forEach((a) => {
+  if (['progreso', 'comidas', 'plan'].includes(a)) estado.seccion = a;
+  if (a === 'cliente') estado.pantalla = 'duenio';
+  if (a === 'cel' || a === 'web') estado.modo = a;
+  if (a === 'largo') document.head.insertAdjacentHTML('beforeend', '<style>.marco-cel{height:auto!important}</style>');
+});
+render();
+atajo.forEach((a) => {
+  if (a.startsWith('plato-')) abrirHoja(hojaPlato(a.slice(6), 'almuerzo', 'entregado'));
+  if (a === 'mediciones') abrirHoja(hojaMediciones());
+});
+</script>
+</body>
+</html>
